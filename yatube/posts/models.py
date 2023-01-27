@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.db.models.constraints import UniqueConstraint
+from core.models import Pub_date_Model
 
 User = get_user_model()
 
@@ -19,15 +21,12 @@ class Group(models.Model):
         return self.title
 
 
-class Post(models.Model):
+class Post(Pub_date_Model):
     text = models.TextField(
         verbose_name='post_text',
         help_text='Введите текст поста'
     )
-    pub_date = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='date_of_pub',
-    )
+
     group = models.ForeignKey(
         'Group',
         on_delete=models.SET_NULL,
@@ -57,7 +56,7 @@ class Post(models.Model):
         return self.text[:settings.ITEMS_PER_PAGE]
 
 
-class Comment(models.Model):
+class Comment(Pub_date_Model):
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
@@ -74,10 +73,35 @@ class Comment(models.Model):
         verbose_name='comment_text',
         help_text='Введите текст комментария'
     )
-    created = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='date_of_creation_of_comment',
-    )
+    
+    class Meta:
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
 
     def __str__(self):
         return self.text
+
+
+class Follow(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='follower',
+        verbose_name='author',
+        help_text='Пользователь, который подписывается на автора'
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='following',
+        verbose_name='author',
+        help_text='Пользователь, на которого подписываются'
+    )
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(
+                fileds = ['user', 'author'],
+                name = 'unique_following'
+            )
+        ]
