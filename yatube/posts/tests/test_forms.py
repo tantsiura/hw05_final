@@ -1,5 +1,6 @@
 from http import HTTPStatus
 
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -39,12 +40,14 @@ class PostFormTests(TestCase):
             image=self.uploaded
         )
         posts_count = Post.objects.count()
+        cache.clear()
         form_data = {'text': 'Тестовый текст'}
         response = self.authorized_client.post(
             reverse('posts:post_create'),
             data=form_data,
             follow=True
         )
+        cache.clear()
         self.assertRedirects(response, reverse('posts:profile', kwargs={
             'username': self.user.username}))
         self.assertEqual(Post.objects.count(), posts_count + 1)

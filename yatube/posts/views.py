@@ -38,7 +38,6 @@ def group_posts(request, slug):
     return render(request, template, context)
 
 
-@login_required
 def profile(request, username):
     """Страница профиля пользователя"""
     author = get_object_or_404(User, username=username)
@@ -46,35 +45,25 @@ def profile(request, username):
     posts_count = author.posts.all().count
     page_obj = get_page_of_paginator(request, posts)
     template = 'posts/profile.html'
-
-    if request.user.username != username:
-        checked = Follow.objects.filter(
-            user=request.user,
-            author=author
-        )
-        if checked.exists() is True:
-            context = {
-                'author': author,
-                'page_obj': page_obj,
-                'posts_count': posts_count,
-                'following': True
-            }
-            return render(request, template, context)
+    context = {
+        'author': author,
+        'page_obj': page_obj,
+        'posts_count': posts_count
+    }
+    if request.user.is_authenticated is True:
+        if request.user.username != username:
+            checked = Follow.objects.filter(
+                user=request.user,
+                author=author
+            )
+            if checked.exists() is True:
+                context['following'] = True
+                return render(request, template, context)
+            else:
+                return render(request, template, context)
         else:
-            context = {
-                'author': author,
-                'page_obj': page_obj,
-                'posts_count': posts_count,
-                'following': False
-            }
             return render(request, template, context)
     else:
-        context = {
-            'author': author,
-            'page_obj': page_obj,
-            'posts_count': posts_count,
-            'following': False
-        }
         return render(request, template, context)
 
 

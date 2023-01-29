@@ -41,10 +41,8 @@ class PostsURLTests(TestCase):
         self.public_link_list = [
             '/',
             f'/group/{PostsURLTests.group.slug}/',
+            '/profile/auth/',
             f'/posts/{PostsURLTests.post.pk}/',
-        ]
-        self.private_link_list = [
-            '/profile/auth/'
         ]
 
     def test_unauthorized_accesible(self):
@@ -69,8 +67,6 @@ class PostsURLTests(TestCase):
         link_list = self.public_link_list
         link_list.append('/create/')
         self.check_of_access(link_list)
-        link_list_private = self.private_link_list
-        self.check_of_access(link_list_private)
 
     def test_author_accesible(self):
         """Проверка доступа к страницам
