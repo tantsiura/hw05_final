@@ -1,8 +1,7 @@
+from core.models import PubdateModel
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models.constraints import UniqueConstraint
-from core.models import Pub_date_Model
 
 User = get_user_model()
 
@@ -21,7 +20,7 @@ class Group(models.Model):
         return self.title
 
 
-class Post(Pub_date_Model):
+class Post(PubdateModel):
     text = models.TextField(
         verbose_name='post_text',
         help_text='Введите текст поста'
@@ -56,7 +55,7 @@ class Post(Pub_date_Model):
         return self.text[:settings.ITEMS_PER_PAGE]
 
 
-class Comment(Pub_date_Model):
+class Comment(PubdateModel):
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
@@ -73,7 +72,7 @@ class Comment(Pub_date_Model):
         verbose_name='comment_text',
         help_text='Введите текст комментария'
     )
-    
+
     class Meta:
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
@@ -100,8 +99,12 @@ class Follow(models.Model):
 
     class Meta:
         constraints = [
-            UniqueConstraint(
-                fileds = ['user', 'author'],
-                name = 'unique_following'
+            models.UniqueConstraint(
+                fields=['author', 'user'],
+                name='author unique'
+            ),
+            models.CheckConstraint(
+                check=models.Q(author__lt=models.F('user')) | models.Q(
+                    author__gt=models.F('user')), name='dont subsctibe yself'
             )
         ]

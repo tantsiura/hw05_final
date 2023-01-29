@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import Client, TestCase
 from django.urls import reverse
 
@@ -40,8 +41,10 @@ class PostsURLTests(TestCase):
         self.public_link_list = [
             '/',
             f'/group/{PostsURLTests.group.slug}/',
-            '/profile/auth/',
             f'/posts/{PostsURLTests.post.pk}/',
+        ]
+        self.private_link_list = [
+            '/profile/auth/'
         ]
 
     def test_unauthorized_accesible(self):
@@ -53,16 +56,21 @@ class PostsURLTests(TestCase):
                 response = self.guest_client.get(address)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
+    def check_of_access(self, list):
+        for address in list:
+            with self.subTest(address=address):
+                response = self.authorized_client.get(address)
+                self.assertEqual(response.status_code, HTTPStatus.OK)
+
     def test_authorized_accesible(self):
         """
         Проверка доступа к страницам авторизованным пользователем.
         """
         link_list = self.public_link_list
         link_list.append('/create/')
-        for address in link_list:
-            with self.subTest(address=address):
-                response = self.authorized_client.get(address)
-                self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.check_of_access(link_list)
+        link_list_private = self.private_link_list
+        self.check_of_access(link_list_private)
 
     def test_author_accesible(self):
         """Проверка доступа к страницам
@@ -126,6 +134,7 @@ class PostsURLTests(TestCase):
             f'/posts/{post_id}/edit/': 'posts/create_post.html',
             '/create/': 'posts/create_post.html',
         }
+        cache.clear()
         for address, template in templates_url_names.items():
             with self.subTest(address=address):
                 response = self.author_client.get(address)

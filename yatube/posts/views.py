@@ -1,13 +1,17 @@
-
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.cache import cache_page
-from django.conf import settings
+
 from .forms import CommentForm, PostForm
-from .models import Comment, Group, Post, User, Follow
+from .models import Comment, Follow, Group, Post, User
 from .utils import get_page_of_paginator
 
-@cache_page(settings.CACHES_TIME_DEFAULT_IN_SEC, key_prefix='index_page')
+
+@cache_page(
+    settings.CACHES_TIME_DEFAULT,
+    key_prefix='index_page'
+)
 def index(request):
     """Главная страница"""
     posts = Post.objects.all()
@@ -19,6 +23,7 @@ def index(request):
     }
 
     return render(request, template, context)
+
 
 def group_posts(request, slug):
     """Страница постов по группам"""
@@ -33,6 +38,7 @@ def group_posts(request, slug):
     return render(request, template, context)
 
 
+@login_required
 def profile(request, username):
     """Страница профиля пользователя"""
     author = get_object_or_404(User, username=username)
@@ -40,24 +46,48 @@ def profile(request, username):
     posts_count = author.posts.all().count
     page_obj = get_page_of_paginator(request, posts)
     template = 'posts/profile.html'
-    context = {
-        'author': author,
-        'page_obj': page_obj,
-        'posts_count': posts_count
-    }
 
-    return render(request, template, context)
+    if request.user.username != username:
+        checked = Follow.objects.filter(
+            user=request.user,
+            author=author
+        )
+        if checked.exists() is True:
+            context = {
+                'author': author,
+                'page_obj': page_obj,
+                'posts_count': posts_count,
+                'following': True
+            }
+            return render(request, template, context)
+        else:
+            context = {
+                'author': author,
+                'page_obj': page_obj,
+                'posts_count': posts_count,
+                'following': False
+            }
+            return render(request, template, context)
+    else:
+        context = {
+            'author': author,
+            'page_obj': page_obj,
+            'posts_count': posts_count,
+            'following': False
+        }
+        return render(request, template, context)
+
 
 def post_detail(request, post_id):
     """Страница конкретного поста"""
     post = get_object_or_404(Post, pk=post_id)
     comments = Comment.objects.filter(author=post.author).all()
     form = CommentForm(request.POST or None)
-    template ='posts/post_detail.html'
+    template = 'posts/post_detail.html'
     context = {
         'post': post,
-        'comments' : comments,
-        'form' : form
+        'comments': comments,
+        'form': form
     }
     return render(request, template, context)
 
@@ -83,7 +113,7 @@ def post_edit(request, post_id):
     """Редактирование поста"""
     post = get_object_or_404(Post, pk=post_id)
     form = PostForm(
-        request.POST or None, 
+        request.POST or None,
         files=request.FILES or None,
         instance=post
     )
@@ -100,6 +130,7 @@ def post_edit(request, post_id):
     form.save()
     return redirect('posts:post_detail', post_id)
 
+
 @login_required
 def add_comment(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
@@ -111,12 +142,15 @@ def add_comment(request, post_id):
         comment.save()
     return redirect('posts:post_detail', post_id=post_id)
 
+
 @login_required
 def follow_index(request):
     """Страница с выводом постов авторов,
     на которых подписан текущий пользователь.
     """
-    posts = Follow.objects.filter(user=request.user).all()
+    follow_authors = request.user.follower.values_list('author', flat=True)
+
+    posts = Post.objects.filter(author__in=follow_authors)
     page_obj = get_page_of_paginator(request, posts)
     template = 'posts/follow.html'
 
@@ -126,19 +160,27 @@ def follow_index(request):
 
     return render(request, template, context)
 
+
 @login_required
 def profile_follow(request, username):
-    """ Подписка на автора """
-    author = get_object_or_404(User, username = username)
-    if request.user != author:
-        Follow.objects.update_or_create(user=request.user, author=author)
-
+    """ Подписка на пользователя """
+    author = get_object_or_404(User, username=username)
+    if request.user.username != username:
+        follow, created = Follow.objects.get_or_create(
+            user=request.user,
+            author=author
+        )
     return redirect('posts:profile', username=username)
+
 
 @login_required
 def profile_unfollow(request, username):
-    author = get_object_or_404(User, username = username)
-    if request.user != author:
-        Follow.objects.filter(author=author).delete()
-
+    """ Отписка от пользователя"""
+    author = get_object_or_404(User, username=username)
+    if request.user.username != username:
+        follow = Follow.objects.filter(
+            user=request.user,
+            author=author
+        )
+        follow.delete()
     return redirect('posts:profile', username=username)

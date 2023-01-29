@@ -152,6 +152,6 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
     }
-} 
+}
 
-CACHES_TIME_DEFAULT_IN_SEC = 20
+CACHES_TIME_DEFAULT = 20

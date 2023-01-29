@@ -1,17 +1,17 @@
 {% extends 'base.html' %}
-{% block title %} Профиль пользователя {{ user.username }} {% endblock %}
+{% block title %} Профиль пользователя {{ author.username }} {% endblock %}
 {% block content %}
 {% load thumbnail %}
   <div class="container py-5">        
-    <h1>Все посты пользователя {{ user.username }} </h1>
+    <h1>Все посты пользователя {{ author.username }} </h1>
     <h3>Всего постов: {{posts_count}} </h3>
     {% include 'posts/includes/follow_unfollow.html' %}
     {% for post in page_obj %}
       <article>
         <ul>
           <li>
-            Автор: {{ user.username }}
-            <a href="{% url 'posts:profile' user %}"></a>
+            Автор: {{ author.username }}
+            <a href="{% url 'posts:profile' author %}"></a>
           </li>
           <li>
             Дата публикации: {{ post.pub_date|date:"d E Y" }} 
