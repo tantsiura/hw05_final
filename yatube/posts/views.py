@@ -41,8 +41,8 @@ def group_posts(request, slug):
 def profile(request, username):
     """Страница профиля пользователя"""
     author = get_object_or_404(User, username=username)
-    posts = Post.objects.select_related('author').all()
-    posts_count = posts.all().count()
+    posts = Post.objects.filter(author=author).all()
+    posts_count = author.posts.all().count
     page_obj = get_page_of_paginator(request, posts)
     template = 'posts/profile.html'
 
