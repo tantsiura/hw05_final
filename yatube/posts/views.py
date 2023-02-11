@@ -14,7 +14,7 @@ from .utils import get_page_of_paginator
 )
 def index(request):
     """Главная страница"""
-    posts = Post.objects.all()
+    posts = Post.objects.select_related('author', 'group').all()
     page_obj = get_page_of_paginator(request, posts)
     template = 'posts/index.html'
 
@@ -41,36 +41,36 @@ def group_posts(request, slug):
 def profile(request, username):
     """Страница профиля пользователя"""
     author = get_object_or_404(User, username=username)
-    posts = Post.objects.filter(author=author).all()
-    posts_count = author.posts.all().count
+    posts = Post.objects.select_related('author').all()
+    posts_count = posts.all().count()
     page_obj = get_page_of_paginator(request, posts)
     template = 'posts/profile.html'
+    
+    if request.user.is_authenticated is True:
+        checked = Follow.objects.filter(
+            user=request.user,
+            author=author
+        )
+        if checked.exists() is True:
+            following = True
+        else:
+            following = False
+    else:
+        following = False
+
     context = {
         'author': author,
         'page_obj': page_obj,
-        'posts_count': posts_count
+        'posts_count': posts_count,
+        'following': following
     }
-    if request.user.is_authenticated is True:
-        if request.user.username != username:
-            checked = Follow.objects.filter(
-                user=request.user,
-                author=author
-            )
-            if checked.exists() is True:
-                context['following'] = True
-                return render(request, template, context)
-            else:
-                return render(request, template, context)
-        else:
-            return render(request, template, context)
-    else:
-        return render(request, template, context)
+    return render(request, template, context)
 
 
 def post_detail(request, post_id):
     """Страница конкретного поста"""
     post = get_object_or_404(Post, pk=post_id)
-    comments = Comment.objects.filter(author=post.author).all()
+    comments = Comment.objects.select_related('post').all()
     form = CommentForm(request.POST or None)
     template = 'posts/post_detail.html'
     context = {
@@ -90,7 +90,7 @@ def post_create(request):
     )
     template = 'posts/create_post.html'
     if not form.is_valid():
-        return render(request, template, {'form': form, 'is_edit': True})
+        return render(request, template, {'form': form, 'is_edit': False})
     new_post = form.save(commit=False)
     new_post.author = request.user
     form.save()
