@@ -80,6 +80,7 @@ class Comment(PubdateModel):
     def __str__(self):
         return self.text[:settings.ITEMS_PER_PAGE]
 
+
 class Follow(models.Model):
     user = models.ForeignKey(
         User,

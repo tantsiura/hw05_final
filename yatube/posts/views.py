@@ -45,8 +45,8 @@ def profile(request, username):
     posts_count = posts.all().count()
     page_obj = get_page_of_paginator(request, posts)
     template = 'posts/profile.html'
-    
-    if request.user.is_authenticated is True:
+
+    if request.user.is_authenticated:
         checked = Follow.objects.filter(
             user=request.user,
             author=author

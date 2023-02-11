@@ -60,5 +60,5 @@ class CommentModelTest(TestCase):
             text='Тестовый комментарий',
         )
         test_comment = self.comment
-        expected_object_comment = test_comment.text
+        expected_object_comment = test_comment.text[:settings.ITEMS_PER_PAGE]
         self.assertEqual(expected_object_comment, str(test_comment))
